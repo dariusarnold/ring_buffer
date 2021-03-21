@@ -79,7 +79,7 @@ public:
      * Push single value in the buffer.
      * @param value
      */
-    void push(T value) {
+    void push_back(T value) {
         _buffer[_index] = value;
         _index.increment();
     }
