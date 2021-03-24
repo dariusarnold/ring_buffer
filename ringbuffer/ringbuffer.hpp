@@ -101,6 +101,17 @@ public:
         }
     }
 
+    /**
+     * Remove last pushed value.
+     * @return
+     */
+    void pop_back() {
+        if (_num_elements == 0) {
+            return;
+        }
+        --_num_elements;
+    }
+
     [[nodiscard]] size_t capacity() const {
         return N;
     }

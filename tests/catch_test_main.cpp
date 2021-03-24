@@ -128,3 +128,47 @@ TEST_CASE("Test overwriting on push_back in unfilled buffer") {
     CHECK(buff[1] == 100);
     CHECK(buff[2] == 101);
 }
+
+TEST_CASE("Pop back on empty buffer works (no guarantuee for the value returned)") {
+    ringbuffer<int, 3> buff;
+    buff.pop_back();
+}
+
+TEST_CASE("Pop back without overwritten values") {
+    ringbuffer<int, 3> buff{1, 2, 3};
+    buff.pop_back();
+    buff.pop_back();
+    buff.pop_back();
+    CHECK(buff.empty());
+}
+
+TEST_CASE("Pop back with overwritten values") {
+    ringbuffer<int, 3> buff{1, 2, 3};
+    buff.push_back(99);
+    buff.pop_back();
+    CHECK(buff.size() == 2);
+    CHECK(buff[0] == 2);
+    CHECK(buff[1] == 3);
+    buff.pop_back();
+    CHECK(buff.size() == 1);
+    CHECK(buff[0] == 2);
+    buff.pop_back();
+    CHECK(buff.empty());
+}
+
+TEST_CASE("Pop back with repeatedly overwritten values") {
+    ringbuffer<int, 3> buff{1, 2, 3};
+    buff.push_back(10);
+    buff.push_back(11);
+    buff.push_back(12);
+    buff.push_back(13);
+    buff.pop_back();
+    CHECK(buff.size() == 2);
+    CHECK(buff[0] == 11);
+    CHECK(buff[1] == 12);
+    buff.pop_back();
+    CHECK(buff.size() == 1);
+    CHECK(buff[0] == 11);
+    buff.pop_back();
+    CHECK(buff.empty());
+}
