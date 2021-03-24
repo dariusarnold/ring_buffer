@@ -10,36 +10,43 @@ namespace impl {
      * It implements a wrap around behavour between 0 and MAX.
      * Decrementing 0 will set the value to max, incrementing MAX
      * will set the value to 0.
+     * Assigning a value > MAX will set the value to value % MAX.
      * @tparam MAX
      */
     template<size_t MAX>
-    class Index {
+    class WrappingUnsignedInteger {
     public:
-        Index() : _index(0) {}
-        Index(size_t val) : _index(val) { if (val > MAX) _index = 0; }
+        WrappingUnsignedInteger() = default;
+        explicit WrappingUnsignedInteger(size_t val) : _value(val) { if (val > MAX) _value %= MAX; }
+
+        WrappingUnsignedInteger& operator=(size_t val) {
+            _value = val;
+            if (val > MAX) _value %= MAX;
+            return *this;
+        }
 
         void increment() {
-            if (_index == MAX) {
-                _index = 0;
+            if (_value == MAX) {
+                _value = 0;
             } else {
-                ++_index;
+                ++_value;
             }
         }
 
         void decrement() {
-            if (_index == 0) {
-                _index = MAX;
+            if (_value == 0) {
+                _value = MAX;
             } else {
-                --_index;
+                --_value;
             }
         }
 
-        operator size_t() {
-            return _index;
+        operator size_t() const {
+            return _value;
         }
 
     private:
-        size_t _index;
+        size_t _value = 0;
     };
 }
 
@@ -61,7 +68,7 @@ public:
      * Pushing will begin at index 0.
      * @param initial_value
      */
-    ringbuffer(T initial_value): _index(0) {
+    explicit ringbuffer(T initial_value): _num_elements(N) {
         _buffer.fill(initial_value);
     }
 
@@ -73,27 +80,52 @@ public:
      * @param ts
      */
     template<typename... U>
-    ringbuffer(T u, U... ts) : _buffer{u, ts...}, _index(1 + sizeof...(ts)) {}
+    explicit ringbuffer(T u, U... ts) : _buffer{u, ts...}, _num_elements(1 + sizeof...(ts)) {}
+
+    void clear() {
+        _first = 0;
+        _num_elements = 0;
+    }
 
     /**
      * Push single value in the buffer.
      * @param value
      */
     void push_back(T value) {
-        _buffer[_index] = value;
-        _index.increment();
+        const auto i = (_first + _num_elements) % N;
+        _buffer[i] = value;
+        if (_num_elements == capacity()) {
+            _first.increment();
+        } else {
+            ++_num_elements;
+        }
     }
 
-    size_t capacity() {
+    [[nodiscard]] size_t capacity() const {
         return N;
     }
 
+    [[nodiscard]] size_t size() const {
+        return _num_elements;
+    }
+
+    [[nodiscard]] bool empty() const {
+        return size() == 0;
+    }
+
+    /**
+     * Get values in FIFO order. Index 0 will always be the oldest element of the container
+     * @param i
+     * @return
+     */
     T &operator[](size_t i) {
-        return _buffer[i];
+        const auto j = (_first + i) % N;
+        return _buffer[j];
     }
 
 private:
     std::array<T, N> _buffer;
-    // After every operation, this index should point to the next insertion point
-    impl::Index<N - 1> _index;
+    // Points to the first element
+    impl::WrappingUnsignedInteger<N - 1> _first;
+    size_t _num_elements = 0;
 };
